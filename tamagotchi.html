@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Tamagotchi</title>
+
+<style>
+body{
+    font-family:Arial;
+    text-align:center;
+    background:
+    linear-gradient(45deg,#ddd 25%,transparent 25%),
+    linear-gradient(-45deg,#ddd 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#ddd 75%),
+    linear-gradient(-45deg,transparent 75%,#ddd 75%);
+    background-size:40px 40px;
+}
+
+#panel{
+    background:#333;
+    color:white;
+    padding:10px;
+}
+
+button{
+    padding:10px;
+    margin:5px;
+    font-size:16px;
+    cursor:pointer;
+}
+
+#pet{
+    font-size:80px;
+    margin:20px;
+    transition:0.3s;
+}
+
+.bar{
+    margin:5px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="panel">
+<button onclick="menu()">Ana Menyu</button>
+<button onclick="pauseGame()">Dayandır</button>
+<button onclick="restart()">Yenidən Başlat</button>
+</div>
+
+<h2 id="petName"></h2>
+
+<div id="pet">🥚</div>
+
+<div class="bar">❤️ Sağlamlıq: <span id="health"></span></div>
+<div class="bar">⚡ Enerji: <span id="energy"></span></div>
+<div class="bar">😊 Xoşbəxtlik: <span id="happy"></span></div>
+<div class="bar">🧹 Təmizlik: <span id="clean"></span></div>
+
+<br>
+
+<button onclick="feed()">🍎 Yem ver</button>
+<button onclick="play()">🎮 Oynat</button>
+<button onclick="sleep()">😴 Yatızdır</button>
+<button onclick="cleanPet()">🧼 Təmizlə</button>
+<button onclick="changeSkin()">🎩 Geyim</button>
+<button onclick="miniGame()">⭐ Mini oyun</button>
+
+<script>
+
+let name = prompt("Heyvanın adı?");
+document.getElementById("petName").innerText=name;
+
+let pets=["🐱","🐶","🐰","🐦"];
+let pet=pets[Math.floor(Math.random()*pets.length)];
+
+let skins=["","🎩","👑","🕶️"];
+let skinIndex=0;
+
+let health=100;
+let energy=100;
+let happy=100;
+let clean=100;
+
+let paused=false;
+let age=0;
+
+const petDiv=document.getElementById("pet");
+
+function update(){
+health=Math.max(0,health);
+energy=Math.max(0,energy);
+happy=Math.max(0,happy);
+clean=Math.max(0,clean);
+
+document.getElementById("health").innerText=health;
+document.getElementById("energy").innerText=energy;
+document.getElementById("happy").innerText=happy;
+document.getElementById("clean").innerText=clean;
+
+if(health==0 || energy==0 || happy==0){
+alert(name+" öldü 😢");
+location.reload();
+}
+}
+
+update();
+
+function feed(){
+health+=10;
+clean-=5;
+update();
+}
+
+function play(){
+happy+=10;
+energy-=5;
+update();
+}
+
+function sleep(){
+energy+=15;
+update();
+}
+
+function cleanPet(){
+clean=100;
+update();
+}
+
+function changeSkin(){
+skinIndex++;
+if(skinIndex>=skins.length) skinIndex=0;
+drawPet();
+}
+
+function miniGame(){
+let score=0;
+for(let i=0;i<5;i++){
+if(confirm("Topu tut! OK bas!")) score++;
+}
+happy+=score*5;
+update();
+alert("Xal: "+score);
+}
+
+function drawPet(){
+petDiv.innerText=pet+" "+skins[skinIndex];
+}
+
+drawPet();
+
+
+// heyvan hərəkəti (artıq tərpənir)
+setInterval(()=>{
+if(paused) return;
+petDiv.style.transform=
+`translate(${Math.random()*20-10}px,
+${Math.random()*20-10}px)`;
+},800);
+
+
+// böyümə sistemi
+setInterval(()=>{
+if(paused) return;
+age++;
+
+if(age==1) petDiv.innerText="🐣";
+if(age==2) drawPet();
+},60000);
+
+
+// 3 dəqiqədə azalma
+setInterval(()=>{
+if(paused) return;
+
+health-=5;
+energy-=5;
+happy-=5;
+clean-=5;
+
+update();
+
+if(clean<30){
+petDiv.innerText="💩";
+}
+},180000);
+
+
+function pauseGame(){
+paused=!paused;
+alert(paused?"Dayandırıldı":"Davam edir");
+}
+
+function restart(){
+location.reload();
+}
+
+function menu(){
+window.location.href="index.html";
+}
+
+</script>
+</body>
+</html>

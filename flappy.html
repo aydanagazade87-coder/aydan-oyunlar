@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quş Oyunu 🐦</title>
+    <style>
+        body { font-family: Arial; margin:0; text-align:center; background:#ddd;}
+        #panel {
+            background: #333;
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        #panel button {
+            padding: 8px 15px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        #score { color: #fff; }
+        canvas { 
+            display: block; 
+            margin: 20px auto; 
+            background-color: #eee;
+            background-image: linear-gradient(to right, #ccc 1px, transparent 1px),
+                              linear-gradient(to bottom, #ccc 1px, transparent 1px);
+            background-size: 20px 20px; /* damalı fon */
+        }
+        #gameOverBtn {
+            display:none;
+            padding: 10px 20px;
+            font-size:16px;
+            margin-top:10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="panel">
+    <button id="menuBtn">Ana Menyu 🏠</button>
+    <button id="pauseBtn">Dayandır ⏸</button>
+    <button id="restartBtn">Yenidən Başlat 🔄</button>
+    <div id="score">Score: 0</div>
+</div>
+
+<canvas id="game" width="400" height="400"></canvas>
+<button id="gameOverBtn">Yenidən Oyna 🔁</button>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const W = 400, H = 400;
+const birdSize = 20;
+let bird = {x:100, y:H/2, vy:0};
+const gravity = 0.6;
+const jump = -10;
+let pipes = [];
+const pipeWidth = 40;
+const pipeGap = 120;
+let gameOver = false;
+let paused = false;
+let score = 0;
+
+function createPipe(){
+    let topHeight = Math.floor(Math.random()* (H-pipeGap-50)) + 20;
+    pipes.push({x: W, top: topHeight});
+}
+
+function draw(){
+    ctx.clearRect(0,0,W,H);
+
+    // quş
+    ctx.fillStyle="yellow";
+    ctx.fillRect(bird.x, bird.y, birdSize, birdSize);
+    ctx.strokeStyle="orange";
+    ctx.strokeRect(bird.x, bird.y, birdSize, birdSize);
+
+    // borular
+    ctx.fillStyle="green";
+    pipes.forEach(p=>{
+        ctx.fillRect(p.x,0,pipeWidth,p.top);
+        ctx.fillRect(p.x,p.top+pipeGap,pipeWidth,H-(p.top+pipeGap));
+    });
+}
+
+function update(){
+    if(gameOver || paused) return;
+
+    bird.vy += gravity;
+    bird.y += bird.vy;
+
+    // quş dibə dəydi
+    if(bird.y + birdSize > H || bird.y <0){
+        endGame();
+    }
+
+    // borular
+    for(let i=pipes.length-1;i>=0;i--){
+        pipes[i].x -= 2; // sürət
+        // keçdi
+        if(pipes[i].x + pipeWidth < bird.x && !pipes[i].passed){
+            score++;
+            document.getElementById("score").innerText="Score: "+score;
+            pipes[i].passed = true;
+        }
+
+        // toqquşdu
+        if(bird.x < pipes[i].x + pipeWidth &&
+           bird.x + birdSize > pipes[i].x &&
+           (bird.y < pipes[i].top || bird.y + birdSize > pipes[i].top+pipeGap)){
+               endGame();
+           }
+
+        // ekran xaricindədirsə sil
+        if(pipes[i].x + pipeWidth <0){
+            pipes.splice(i,1);
+        }
+    }
+}
+
+document.addEventListener("keydown", function(e){
+    if(e.key===" " && !gameOver && !paused){
+        bird.vy = jump;
+    }
+});
+
+// panel düymələri
+document.getElementById("restartBtn").addEventListener("click", function(){
+    resetGame();
+});
+
+document.getElementById("pauseBtn").addEventListener("click", function(){
+    paused = !paused;
+    document.getElementById("pauseBtn").innerText = paused ? "Davam et ▶" : "Dayandır ⏸";
+});
+
+document.getElementById("menuBtn").addEventListener("click", function(){
+    window.location.href="index.html";
+});
+
+document.getElementById("gameOverBtn").addEventListener("click", function(){
+    resetGame();
+});
+
+function endGame(){
+    gameOver=true;
+    document.getElementById("gameOverBtn").style.display="inline-block";
+}
+
+function resetGame(){
+    bird = {x:100, y:H/2, vy:0};
+    pipes = [];
+    score=0;
+    gameOver=false;
+    paused=false;
+    document.getElementById("score").innerText="Score: 0";
+    document.getElementById("gameOverBtn").style.display="none";
+}
+
+// ---- oyun loop ----
+setInterval(function(){
+    if(!gameOver && !paused){
+        update();
+        draw();
+    }
+},20); // sürət: 20ms → daha hamar hərəkət
+
+// ---- boru əlavə et interval ----
+setInterval(function(){
+    if(!gameOver && !paused){
+        createPipe();
+    }
+},1500); // hər 1.5 saniyədə yeni boru
+</script>
+</body>
+</html>

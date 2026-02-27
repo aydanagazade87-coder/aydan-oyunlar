@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tetris Oyunu ⬛</title>
+    <style>
+        body { font-family: Arial; margin:0; text-align:center; background:#ddd;}
+        #panel {
+            background: #333;
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        #panel button {
+            padding: 8px 15px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        #score { color: #fff; }
+        canvas { 
+            display: block; 
+            margin: 20px auto; 
+            background-color: #eee;
+            background-image: linear-gradient(to right, #ccc 1px, transparent 1px),
+                              linear-gradient(to bottom, #ccc 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="panel">
+    <button id="menuBtn">Ana Menyu 🏠</button>
+    <button id="pauseBtn">Dayandır ⏸</button>
+    <button id="restartBtn">Yenidən Başlat 🔄</button>
+    <div id="score">Score: 0</div>
+</div>
+
+<canvas id="game" width="200" height="400"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const ROW = 20, COL = 10, SQ = 20;
+let board = Array.from({length: ROW}, () => Array(COL).fill(0));
+
+const pieces = [
+    {shape:[[1,1,1,1]], color:"cyan"},       // I
+    {shape:[[1,1],[1,1]], color:"yellow"},  // O
+    {shape:[[0,1,0],[1,1,1]], color:"purple"}, // T
+    {shape:[[1,1,0],[0,1,1]], color:"red"}, // S
+    {shape:[[0,1,1],[1,1,0]], color:"green"}, // Z
+    {shape:[[1,0,0],[1,1,1]], color:"blue"}, // J
+    {shape:[[0,0,1],[1,1,1]], color:"orange"} // L
+];
+
+let current = null;
+let pos = {x:0,y:0};
+let gameOver = false;
+let paused = false;
+let score = 0;
+
+// ---- Board və Piece funksiyaları ----
+function drawSquare(x,y,color){
+    ctx.fillStyle = color;
+    ctx.fillRect(x*SQ, y*SQ, SQ, SQ);
+    ctx.strokeStyle="white";
+    ctx.strokeRect(x*SQ, y*SQ, SQ, SQ);
+}
+
+function drawBoard(){
+    ctx.clearRect(0,0,COL*SQ,ROW*SQ);
+    for(let r=0;r<ROW;r++){
+        for(let c=0;c<COL;c++){
+            if(board[r][c]!==0) drawSquare(c,r,board[r][c]);
+        }
+    }
+}
+
+function randomPiece(){
+    return JSON.parse(JSON.stringify(pieces[Math.floor(Math.random()*pieces.length)]));
+}
+
+function drawPiece(p, pos){
+    for(let r=0;r<p.shape.length;r++){
+        for(let c=0;c<p.shape[r].length;c++){
+            if(p.shape[r][c]!==0) drawSquare(pos.x+c,pos.y+r,p.color);
+        }
+    }
+}
+
+function collision(p, pos){
+    for(let r=0;r<p.shape.length;r++){
+        for(let c=0;c<p.shape[r].length;c++){
+            if(p.shape[r][c]!==0){
+                let x = pos.x+c, y = pos.y+r;
+                if(x<0 || x>=COL || y>=ROW) return true;
+                if(board[y][x]!==0) return true;
+            }
+        }
+    }
+    return false;
+}
+
+function merge(p,pos){
+    for(let r=0;r<p.shape.length;r++){
+        for(let c=0;c<p.shape[r].length;c++){
+            if(p.shape[r][c]!==0){
+                board[pos.y+r][pos.x+c] = p.color;
+            }
+        }
+    }
+}
+
+function removeLines(){
+    let lines = 0;
+    for(let r=ROW-1;r>=0;r--){
+        if(board[r].every(c=>c!==0)){
+            board.splice(r,1);
+            board.unshift(Array(COL).fill(0));
+            lines++;
+            r++;
+        }
+    }
+    score += lines*10;
+    document.getElementById("score").innerText = "Score: "+score;
+}
+
+function newPiece(){
+    current = randomPiece();
+    pos = {x:Math.floor(COL/2)-1, y:0};
+    if(collision(current,pos)) gameOverFunc();
+}
+
+// ---- Hərəkət funksiyaları ----
+function move(dir){
+    let newPos = {x: pos.x+dir, y: pos.y};
+    if(!collision(current,newPos)) pos=newPos;
+}
+
+function drop(){
+    let newPos = {x: pos.x, y: pos.y+1};
+    if(!collision(current,newPos)){
+        pos = newPos;
+    } else {
+        merge(current,pos);
+        removeLines();
+        newPiece();
+    }
+}
+
+function rotate(){
+    let temp = JSON.parse(JSON.stringify(current.shape));
+    for(let r=0;r<temp.length;r++){
+        for(let c=r;c<temp[r].length;c++){
+            [temp[r][c], temp[c][r]] = [temp[c][r], temp[r][c]];
+        }
+    }
+    temp.forEach(r=>r.reverse());
+    let oldShape = current.shape;
+    current.shape = temp;
+    if(collision(current,pos)) current.shape = oldShape;
+}
+
+function gameOverFunc(){
+    gameOver = true;
+    alert("Oyun bitdi! Score: "+score);
+}
+
+// ---- Klaviatura ----
+document.addEventListener("keydown", function(e){
+    if(gameOver || paused) return;
+    if(e.key==="ArrowLeft") move(-1);
+    if(e.key==="ArrowRight") move(1);
+    if(e.key==="ArrowDown") drop();
+    if(e.key==="ArrowUp") rotate();
+});
+
+// ---- Panel düymələri ----
+document.getElementById("restartBtn").addEventListener("click", function(){
+    board = Array.from({length: ROW}, ()=>Array(COL).fill(0));
+    gameOver = false;
+    paused = false;
+    score = 0;
+    document.getElementById("score").innerText = "Score: 0";
+    newPiece();
+});
+
+document.getElementById("pauseBtn").addEventListener("click", function(){
+    paused = !paused;
+    document.getElementById("pauseBtn").innerText = paused ? "Davam et ▶" : "Dayandır ⏸";
+});
+
+document.getElementById("menuBtn").addEventListener("click", function(){
+    window.location.href = "index.html";
+});
+
+// ---- Oyun loop ----
+function draw(){
+    drawBoard();
+    if(current) drawPiece(current,pos);
+}
+
+newPiece();
+setInterval(function(){
+    if(!gameOver && !paused){
+        drop();
+        draw();
+    }
+},200);
+</script>
+</body>
+</html>
